@@ -27,6 +27,7 @@
 | `parameters/test.parameters.json` | Test-environment parameter template |
 | `parameters/prod.parameters.json` | Production parameter template |
 | `scripts/publish-template-spec.ps1` | Publishes the compiled template + uiFormDefinition as an Azure Template Spec |
+| `scripts/new-app-registrations.ps1` | Creates (or repairs) the three Entra app registrations, their enterprise applications and the Media Builder admin consent |
 | `scripts/verify-app-registrations.ps1` | Checks the Entra app registrations against what the deployment expects |
 | `SHA256SUMS` | SHA-256 checksums for all ZIP artifacts |
 

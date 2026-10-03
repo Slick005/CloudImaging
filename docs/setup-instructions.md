@@ -94,6 +94,39 @@ Cloud Imaging uses three separate Entra ID App Registrations, each with a single
 > redemption to be rejected with **AADSTS9002326**. Keeping them in separate registrations avoids
 > this entirely.
 
+#### Option A *(recommended)*: create all three with a script
+
+`new-app-registrations.ps1` creates the three registrations below exactly as described, along with
+their enterprise applications, and grants admin consent for the Media Builder's Operator API
+permission. It's part of the deployment bundle from
+[Get the Deployment Scripts](#get-the-deployment-scripts); run it from the `deploy/` folder with an
+account that holds **Application Administrator** or **Cloud Application Administrator**:
+
+```powershell
+Install-Module Microsoft.Graph.Authentication, Microsoft.Graph.Applications -Scope CurrentUser
+.\scripts\new-app-registrations.ps1 -TenantId "<your-tenant>.onmicrosoft.com"
+```
+
+It ends by printing `portalClientId`, `operatorApiClientId` and `mediaBuilderClientId` for the
+Template Spec wizard in [Phase 2](#phase-2-deploy-the-azure-resources), and the matching
+`verify-app-registrations.ps1` command.
+
+- **Safe to re-run.** Registrations are matched by display name. An existing one only gets what's
+  missing added (and the known sign-in breakers fixed); nothing you added yourself is removed.
+- **Different names:** `-DisplayNamePrefix "Contoso Imaging"` names them *Contoso Imaging Portal*
+  and so on.
+- **No consent rights?** Add `-SkipAdminConsent`, then have an administrator click
+  **Grant admin consent** on the Media Builder registration's **API permissions** page
+  (Registration 3, step 7).
+- **Preview first:** `-WhatIf` shows what would be created or changed without changing anything.
+
+The Portal starts with the `https://localhost` placeholder redirect URI. After Phase 2, re-run the
+script with `-PortalRedirectUri` to complete [Phase 2, Step 3](#step-3-update-the-portal-redirect-uri).
+
+#### Option B: create them in the Microsoft Entra admin center
+
+Follow the three sections below.
+
 #### Registration 1: Cloud Imaging Portal (browser SPA)
 
 1. In Entra ID → App Registrations → **New registration**
@@ -336,6 +369,15 @@ Click **Create** and wait ~15 minutes.
 The deployment has now created the real portal hostname, so replace the placeholder redirect URI
 from Phase 1 with it. **Portal sign-in fails with AADSTS50011 (redirect URI mismatch) until this
 is done.**
+
+If you created the registrations with `new-app-registrations.ps1`, re-run it with the Static Web
+App's URL (shown on its **Overview** page). It adds that URL and removes the placeholder:
+
+```powershell
+.\scripts\new-app-registrations.ps1 -TenantId "<your-tenant>.onmicrosoft.com" -PortalRedirectUri "https://<swa-name>.azurestaticapps.net"
+```
+
+Otherwise, update it by hand:
 
 1. Open the deployed resource group and select the **Static Web App** resource.
 2. Copy its **URL** from the Overview page, for example `https://<swa-name>.azurestaticapps.net`.

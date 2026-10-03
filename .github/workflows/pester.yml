@@ -1,0 +1,42 @@
+name: PowerShell tests (Pester)
+
+# Unit tests for the deployment scripts under src/deploy. They mock every Microsoft Graph and Az
+# call, so they need no tenant, subscription or secrets and are safe to run on pull requests.
+
+on:
+  pull_request:
+    paths:
+      - 'src/deploy/**/*.ps1'
+      - 'tests/deploy/**'
+      - '.github/workflows/pester.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/deploy/**/*.ps1'
+      - 'tests/deploy/**'
+      - '.github/workflows/pester.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pester:
+    name: Pester
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Run Pester
+        shell: pwsh
+        run: |
+          if (-not (Get-Module -ListAvailable Pester | Where-Object Version -ge ([version]"5.5.0"))) {
+            Install-Module Pester -MinimumVersion 5.5.0 -Force -Scope CurrentUser -SkipPublisherCheck
+          }
+          Import-Module Pester -MinimumVersion 5.5.0
+          $Config = New-PesterConfiguration
+          $Config.Run.Path = "tests/deploy"
+          $Config.Run.Exit = $true
+          $Config.Output.Verbosity = "Detailed"
+          $Config.TestResult.Enabled = $true
+          $Config.TestResult.OutputPath = "pester-results.xml"
+          Invoke-Pester -Configuration $Config
