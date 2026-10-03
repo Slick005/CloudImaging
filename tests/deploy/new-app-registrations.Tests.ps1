@@ -42,9 +42,11 @@ BeforeAll {
         return ConvertTo-GraphObject $App
     }
 
-    # The Microsoft Graph modules are not installed on the test runner; these stubs give Pester
-    # something to mock. Mocks take their parameters from the command they replace, so each stub
-    # declares the parameters the script passes.
+    # Stand-ins for the Microsoft Graph cmdlets, for Pester to mock. They are always used, even
+    # where the Graph modules are installed (as on the GitHub runners): the real cmdlets bind
+    # -BodyParameter to typed Graph models, which hides the hashtable bodies the fake tenant
+    # stores. Functions take precedence over cmdlets, and mocks take their parameters from the
+    # command they replace, so each stub declares the parameters the script passes.
     $Stubs = @{
         "Get-MgApplication"      = { param ($Filter, [switch] $All, $ApplicationId) throw "Not mocked" }
         "New-MgApplication"      = { param ($BodyParameter) throw "Not mocked" }
@@ -56,9 +58,13 @@ BeforeAll {
         "Invoke-MgGraphRequest"  = { param ($Method, $Uri, $Body, $ContentType) throw "Not mocked" }
     }
     foreach ($Command in $Stubs.Keys) {
-        if (-not (Get-Command $Command -ErrorAction SilentlyContinue)) {
-            New-Item -Path "function:global:$Command" -Value $Stubs[$Command] | Out-Null
-        }
+        New-Item -Path "function:global:$Command" -Value $Stubs[$Command] -Force | Out-Null
+    }
+}
+
+AfterAll {
+    foreach ($Command in $Stubs.Keys) {
+        Remove-Item -Path "function:global:$Command" -ErrorAction SilentlyContinue
     }
 }
 
